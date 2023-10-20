@@ -6,7 +6,17 @@ export default class MyPromise {
     callbacksPromise = new Map();
 
     constructor(func) {
-        if (func) func(this._getResolveWithContext(), this._getRejectWithContext())
+        this._callMyPromiseFunc(func);
+    }
+
+    _callMyPromiseFunc(func) {
+        try {
+            if (func) func(this._getResolveWithContext(), this._getRejectWithContext())
+        } catch (error) {
+            setTimeout(() => {
+                this._reject(error)
+            })
+        }
     }
 
     _addCallbackPromise(callback) {
@@ -77,31 +87,46 @@ export default class MyPromise {
     }
 
     _executeFinallyCallback(callback) {
-        const result = callback(),
-            callbackPromise = this.callbacksPromise.get(callback);
+        const callbackPromise = this.callbacksPromise.get(callback);
+        try {
+            const result = callback();
 
-        if (result instanceof MyPromise) {
-            result.then(() => callbackPromise._resolve(this.result));
-            result.catch(result => callbackPromise._reject(result));
+            if (result instanceof MyPromise) {
+                result.then(() => callbackPromise._resolve(this.result));
+                result.catch(result => callbackPromise._reject(result));
 
-            return;
+                return;
+            }
+
+            this._passCurrentPromiseForward(callbackPromise);
+        } catch (error) {
+            this._handleExecuteCallbackError(callbackPromise, error)
         }
-
-        this._passCurrentPromiseForward(callbackPromise);
     }
 
     _executeThenCatchCallback(callback) {
-        const result = callback(this.result),
-            callbackPromise = this.callbacksPromise.get(callback);
+        const callbackPromise = this.callbacksPromise.get(callback);
 
-        if (result instanceof MyPromise) {
-            result.then(result => callbackPromise._resolve(result));
-            result.catch(result => callbackPromise._reject(result));
+        try {
+            const result = callback(this.result);
 
-            return;
+            if (result instanceof MyPromise) {
+                result.then(result => callbackPromise._resolve(result));
+                result.catch(result => callbackPromise._reject(result));
+
+                return;
+            }
+
+            callbackPromise._resolve(result);
+        } catch (error) {
+            this._handleExecuteCallbackError(callbackPromise, error)
         }
+    }
 
-        callbackPromise._resolve(result);
+    _handleExecuteCallbackError(callbackPromise, error) {
+        setTimeout(() => {
+            callbackPromise._reject(error);
+        }, 0)
     }
 
     _resolve(result) {
