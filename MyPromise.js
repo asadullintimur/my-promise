@@ -62,6 +62,16 @@ export default class MyPromise {
         return this.callbacks.filter(callback => callback.type === type || callback.type === 'finally')
     }
 
+    _getOppositeCallbacks() {
+        const state = this.state;
+
+        if (!state) return;
+
+        const oppositeType = state === 'resolved' ? 'catch' : 'then'
+
+        return this.callbacks.filter(callback => callback.type === oppositeType)
+    }
+
     _executeCallbacks() {
         const callbacks = this._getCallbacksByState();
 
@@ -129,11 +139,22 @@ export default class MyPromise {
         }, 0)
     }
 
+    _executeOppositeHandlers() {
+        const oppositeCallbacks = this._getOppositeCallbacks();
+
+        oppositeCallbacks.forEach(({callback: oppositeCallback}) => {
+            const callbackPromise = this.callbacksPromise.get(oppositeCallback);
+
+            this._passCurrentPromiseForward(callbackPromise);
+        })
+    }
+
     _resolve(result) {
         this.state = 'resolved';
         this.result = result;
 
         this._executeCallbacks()
+        this._executeOppositeHandlers()
     }
 
     _reject(result) {
@@ -141,5 +162,6 @@ export default class MyPromise {
         this.result = result;
 
         this._executeCallbacks()
+        this._executeOppositeHandlers()
     }
 }
