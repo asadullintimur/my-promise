@@ -136,7 +136,7 @@ export default class MyPromise {
     _handleExecuteCallbackError(callbackPromise, error) {
         setTimeout(() => {
             callbackPromise._reject(error);
-        }, 0)
+        })
     }
 
     _executeOppositeHandlers() {
@@ -153,15 +153,19 @@ export default class MyPromise {
         this.state = 'resolved';
         this.result = result;
 
-        this._executeCallbacks()
-        this._executeOppositeHandlers()
+        queueMicrotask(() => {
+            this._executeCallbacks()
+            this._executeOppositeHandlers()
+        })
     }
 
     _reject(result) {
         this.state = 'rejected';
         this.result = result;
 
-        this._executeCallbacks()
-        this._executeOppositeHandlers()
+        queueMicrotask(() => {
+            this._executeCallbacks()
+            this._executeOppositeHandlers()
+        })
     }
 }
