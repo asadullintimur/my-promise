@@ -71,7 +71,6 @@ export default class MyPromise {
     }
 
 
-
     protected getCallbackItemsByState() {
         const {state} = this;
 
@@ -106,12 +105,18 @@ export default class MyPromise {
         });
     }
 
+    protected checkCallbackItemsIsEmpty(myPromise: MyPromise) {
+        return !myPromise.callbackItems.length;
+    }
+
     protected passCurrentMyPromiseForward(callbackItemPromise: MyPromise) {
         if (this.state === "resolved") {
             callbackItemPromise.resolve(this.result);
 
             return;
         }
+
+        if (this.checkCallbackItemsIsEmpty(callbackItemPromise)) throw this.result;
 
         callbackItemPromise.reject(this.result);
     }
@@ -181,6 +186,9 @@ export default class MyPromise {
     }
 
     reject(result: any) {
+        if (this.checkCallbackItemsIsEmpty(this))
+            throw result;
+
         this.state = "rejected";
         this.result = result;
 

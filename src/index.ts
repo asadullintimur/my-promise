@@ -1,8 +1,8 @@
 import MyPromise from "./lib/MyPromise.js";
 
-const myPromise = new MyPromise((resolve) => {
+const myPromise = new MyPromise((resolve, reject) => {
     setTimeout(() => {
-        resolve(2);
+        reject(new Error("test"));
     }, 1000);
 });
 
